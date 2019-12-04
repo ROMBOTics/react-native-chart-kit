@@ -69,9 +69,9 @@ class AbstractChart extends Component {
         <Line
           key={Math.random()}
           x1={paddingRight}
-          y1={(height / 4) * i + paddingTop}
+          y1={(height / count) * i + paddingTop}
           x2={width}
-          y2={(height / 4) * i + paddingTop}
+          y2={(height / count) * i + paddingTop}
           {...this.getPropsForBackgroundLines()}
         />
       );

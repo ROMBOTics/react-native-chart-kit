@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import {
   Svg,
   Circle,
@@ -7,7 +7,7 @@ import {
   Polyline,
   Path,
   Rect,
-  G
+  G,
 } from "react-native-svg";
 import AbstractChart from "./abstract-chart";
 
@@ -199,6 +199,30 @@ class LineChart extends AbstractChart {
       .join(" ");
   };
 
+  renderAnnotation = config => {
+    const { data } = config;
+    const datas = this.getDatas(data);
+
+    //get radius for dot
+    const { chartConfig = {}} = this.props
+    const { propsForDots = {}, labelColor = () => '#000000' } = chartConfig;
+    const { r } = propsForDots
+    const radius = parseInt(r, 10)
+    return (
+      <View style={{}}>
+        {data.map((dataset, index) => (
+          <View style={styles.annotationContainer}>
+            <View style={{backgroundColor: this.getColor(dataset, 0.2), width: radius * 2, height: radius * 2, borderRadius: radius}}/>
+            <Text style={[styles.annotation, {color: labelColor()}]}>{dataset.annotation}</Text>
+          </View>
+        ))}
+      </View>
+    )
+    
+
+    return output;
+  };
+
   renderBezierLine = config => {
     return config.data.map((dataset, index) => {
       const result = this.getBezierLinePoints(dataset, config);
@@ -250,6 +274,8 @@ class LineChart extends AbstractChart {
       onDataPointClick,
       verticalLabelRotation = 0,
       horizontalLabelRotation = 0,
+      yAxisLabelCount = 4,
+      backgroundColor,
       formatYLabel = yLabel => yLabel,
       formatXLabel = xLabel => xLabel
     } = this.props;
@@ -260,7 +286,7 @@ class LineChart extends AbstractChart {
       paddingRight = 64,
       margin = 0,
       marginRight = 0,
-      paddingBottom = 0
+      paddingBottom = 0,
     } = style;
     const config = {
       width,
@@ -270,7 +296,7 @@ class LineChart extends AbstractChart {
     };
     const datas = this.getDatas(data.datasets);
     return (
-      <View style={style}>
+      <View style={[style, {backgroundColor}]}>
         <Svg
           height={height + paddingBottom}
           width={width - margin * 2 - marginRight}
@@ -285,13 +311,13 @@ class LineChart extends AbstractChart {
               height={height}
               rx={borderRadius}
               ry={borderRadius}
-              fill="url(#backgroundGradient)"
+              fill={backgroundColor}
             />
             <G>
               {withInnerLines
                 ? this.renderHorizontalLines({
                     ...config,
-                    count: 4,
+                    count: yAxisLabelCount,
                     paddingTop,
                     paddingRight
                   })
@@ -307,7 +333,7 @@ class LineChart extends AbstractChart {
               {withHorizontalLabels
                 ? this.renderHorizontalLabels({
                     ...config,
-                    count: Math.min(...datas) === Math.max(...datas) ? 1 : 4,
+                    count: Math.min(...datas) === Math.max(...datas) ? 1 : yAxisLabelCount,
                     data: datas,
                     paddingTop,
                     paddingRight,
@@ -380,9 +406,25 @@ class LineChart extends AbstractChart {
             </G>
           </G>
         </Svg>
+        {this.renderAnnotation({
+           data: data.datasets,
+        })}
       </View>
     );
   }
 }
+
+const styles = StyleSheet.create({
+  annotationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 4,
+    marginLeft: 60
+  },
+  annotation: {
+    paddingLeft: 6,
+    fontSize: 16,
+  },
+});
 
 export default LineChart;
