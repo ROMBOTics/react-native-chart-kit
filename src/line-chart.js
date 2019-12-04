@@ -199,7 +199,7 @@ class LineChart extends AbstractChart {
       .join(" ");
   };
 
-  renderAnnotation = config => {
+  renderLegend = config => {
     const { data } = config;
     const datas = this.getDatas(data);
 
@@ -210,10 +210,10 @@ class LineChart extends AbstractChart {
     const radius = parseInt(r, 10)
     return (
       <View style={{}}>
-        {data.map((dataset, index) => (
-          <View style={styles.annotationContainer}>
+        {data.map((dataset, index) => dataset.legend && (
+          <View style={styles.legendContainer}>
             <View style={{backgroundColor: this.getColor(dataset, 0.2), width: radius * 2, height: radius * 2, borderRadius: radius}}/>
-            <Text style={[styles.annotation, {color: labelColor()}]}>{dataset.annotation}</Text>
+            <Text style={[styles.legend, {color: labelColor()}]}>{dataset.legend}</Text>
           </View>
         ))}
       </View>
@@ -406,7 +406,7 @@ class LineChart extends AbstractChart {
             </G>
           </G>
         </Svg>
-        {this.renderAnnotation({
+        {this.renderLegend({
            data: data.datasets,
         })}
       </View>
@@ -415,13 +415,13 @@ class LineChart extends AbstractChart {
 }
 
 const styles = StyleSheet.create({
-  annotationContainer: {
+  legendContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 4,
     marginLeft: 60
   },
-  annotation: {
+  legend: {
     paddingLeft: 6,
     fontSize: 16,
   },
