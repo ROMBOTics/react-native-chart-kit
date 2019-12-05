@@ -210,7 +210,7 @@ class LineChart extends AbstractChart {
     return (
       <View>
         {data.map((dataset, index) => dataset.legend && (
-          <View style={styles.legendContainer}>
+          <View key={index.toString()} style={styles.legendContainer}>
             <View style={{backgroundColor: this.getColor(dataset, 0.2), width: radius * 2, height: radius * 2, borderRadius: radius}}/>
             <Text style={[styles.legend, {color: labelColor()}]}>{dataset.legend}</Text>
           </View>
