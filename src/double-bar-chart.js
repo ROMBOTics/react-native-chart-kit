@@ -11,7 +11,7 @@ import {
 } from "react-native-svg";
 import AbstractChart from "./abstract-chart";
 
-class LineBarChart extends AbstractChart {
+class DoubleBarChart extends AbstractChart {
   getColor = (dataset, opacity) => {
     return (dataset.color || this.props.chartConfig.color)(opacity);
   };
@@ -55,10 +55,10 @@ class LineBarChart extends AbstractChart {
 
   renderBars = config => {
     const { dataset, width, height, paddingTop, paddingRight, paddingLeft, side = "left" } = config;
-    const { data } = dataset;
+    const {data, maxValue} = dataset;
     const baseHeight = this.calcBaseHeight(data, height);
     return data.map((x, i) => {
-      const barHeight = this.calcHeight(x, data, height);
+      const barHeight = this.calcHeight(x, data, height, maxValue);
       const barWidth = this.getBarWidth();
       return (
         <Rect
@@ -78,10 +78,10 @@ class LineBarChart extends AbstractChart {
 
   renderBarTops = config => {
     const { dataset, width, height, paddingTop, paddingRight, paddingLeft, side = "left" } = config;
-    const { data } = dataset;
+    const {data, maxValue} = dataset;
     const baseHeight = this.calcBaseHeight(data, height);
     return data.map((x, i) => {
-      const barHeight = this.calcHeight(x, data, height);
+      const barHeight = this.calcHeight(x, data, height, maxValue);
       const barWidth = this.getBarWidth();
       return (
         <Rect
@@ -144,7 +144,7 @@ class LineBarChart extends AbstractChart {
       <View style={[style, {backgroundColor}]}>
         <Svg
           height={height + paddingBottom}
-          width={width - margin * 2 - marginRight + strokeWidth}
+          width={width - margin * 2 - marginRight}
         >
           <G>
             {this.renderDefs({
@@ -181,7 +181,7 @@ class LineBarChart extends AbstractChart {
                 ? this.renderHorizontalLabels({
                     ...config,
                     count: Math.min(...datas) === Math.max(...datas) ? 1 : yAxisLabelCount,
-                    data: data.datasets[0].data,
+                    dataset: data.datasets[0],
                     side: 'left',
                     paddingTop,
                     paddingRight,
@@ -195,7 +195,7 @@ class LineBarChart extends AbstractChart {
                 ? this.renderHorizontalLabels({
                     ...config,
                     count: Math.min(...datas) === Math.max(...datas) ? 1 : yAxisLabelCount,
-                    data: data.datasets[1].data,
+                    dataset: data.datasets[1],
                     side: 'right',
                     paddingTop,
                     paddingRight,
@@ -298,4 +298,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LineBarChart;
+export default DoubleBarChart;

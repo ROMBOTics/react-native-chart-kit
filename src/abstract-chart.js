@@ -3,11 +3,11 @@ import React, { Component } from "react";
 import { LinearGradient, Line, Text, Defs, Stop } from "react-native-svg";
 
 class AbstractChart extends Component {
-  calcScaler = data => {
+  calcScaler = (data, maxValue) => {
     if (this.props.fromZero) {
-      return Math.max(...data, 0) - Math.min(...data, 0) || 1;
+      return Math.max(...data, maxValue, 0) - Math.min(...data, 0) || 1;
     } else {
-      return Math.max(...data) - Math.min(...data) || 1;
+      return Math.max(...data, maxValue) - Math.min(...data) || 1;
     }
   };
 
@@ -23,19 +23,19 @@ class AbstractChart extends Component {
     }
   };
 
-  calcHeight = (val, data, height) => {
-    const max = Math.max(...data);
+  calcHeight = (val, data, height, maxValue = 0) => {
+    const max = Math.max(...data, maxValue);
     const min = Math.min(...data);
     if (min < 0 && max > 0) {
-      return height * (val / this.calcScaler(data));
+      return height * (val / this.calcScaler(data, maxValue));
     } else if (min >= 0 && max >= 0) {
       return this.props.fromZero
-        ? height * (val / this.calcScaler(data))
-        : height * ((val - min) / this.calcScaler(data));
+        ? height * (val / this.calcScaler(data, maxValue))
+        : height * ((val - min) / this.calcScaler(data, maxValue));
     } else if (min < 0 && max <= 0) {
       return this.props.fromZero
-        ? height * (val / this.calcScaler(data))
-        : height * ((val - max) / this.calcScaler(data));
+        ? height * (val / this.calcScaler(dat, maxValue))
+        : height * ((val - max) / this.calcScaler(data, maxValue));
     }
   };
 
@@ -95,7 +95,7 @@ class AbstractChart extends Component {
   renderHorizontalLabels = config => {
     const {
       count,
-      data,
+      dataset,
       height,
       width,
       paddingTop,
@@ -107,11 +107,12 @@ class AbstractChart extends Component {
     } = config;
     const {
       yAxisLabel = "",
-      yAxisSuffix = "",
+      yAxisSuffix: yAxisSuffixFromProps,
       yLabelsOffset = 12,
       chartConfig
     } = this.props;
     const { decimalPlaces = 2 } = chartConfig;
+    const {data, maxValue = 0, yAxisSuffix = yAxisSuffixFromProps || ""} = dataset;
     return [...new Array(count)].map((_, i) => {
       let yLabel;
 
@@ -121,8 +122,8 @@ class AbstractChart extends Component {
         )}${yAxisSuffix}`;
       } else {
         const label = this.props.fromZero
-          ? (this.calcScaler(data) / (count - 1)) * i + Math.min(...data, 0)
-          : (this.calcScaler(data) / (count - 1)) * i + Math.min(...data);
+          ? (this.calcScaler(data, maxValue) / (count - 1)) * i + Math.min(...data, 0)
+          : (this.calcScaler(data, maxValue) / (count - 1)) * i + Math.min(...data);
         yLabel = `${yAxisLabel}${formatYLabel(
           label.toFixed(decimalPlaces)
         )}${yAxisSuffix}`;
@@ -204,6 +205,7 @@ class AbstractChart extends Component {
     const { data, width, height, paddingTop, paddingRight, paddingLeft = 0 } = config;
     return [...new Array(data.length + 1)].map((_, i) => {
       let x = Math.floor( ((width - paddingRight - paddingLeft) / data.length) * i + paddingRight)
+      console.log("renderVerticalLines: ", x, i)
       return (
         <Line
           key={Math.random()}

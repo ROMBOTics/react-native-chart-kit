@@ -331,7 +331,7 @@ class LineChart extends AbstractChart {
                 ? this.renderHorizontalLabels({
                     ...config,
                     count: Math.min(...datas) === Math.max(...datas) ? 1 : yAxisLabelCount,
-                    data: datas,
+                    dataset: {data: datas},
                     paddingTop,
                     paddingRight,
                     formatYLabel

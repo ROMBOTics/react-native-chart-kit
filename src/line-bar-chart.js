@@ -52,7 +52,7 @@ class LineBarChart extends AbstractChart {
       onDataPointClick
     } = config;
     const output = [];
-    const {data} = dataset;
+    const {data, maxValue} = dataset;
     const baseHeight = this.calcBaseHeight(data, height);
     const availableWidth = this.getAvailableWidth(config);
     const { getDotColor, hidePointsAtIndex = [] } = this.props;
@@ -64,7 +64,7 @@ class LineBarChart extends AbstractChart {
       const cx =
         paddingRight + (i + 0.5) * availableWidth / data.length;
       const cy =
-        ((baseHeight - this.calcHeight(x, data, height)) / 4) * 3 +
+        ((baseHeight - this.calcHeight(x, data, height, maxValue)) / 4) * 3 +
         paddingTop;
       const onPress = () => {
         if (!onDataPointClick || hidePointsAtIndex.includes(i)) {
@@ -111,7 +111,7 @@ class LineBarChart extends AbstractChart {
 
   renderShadow = config => {
     const { dataset, width, height, paddingRight, paddingLeft, paddingTop } = config;
-    const {data} = dataset;
+    const {data, maxValue} = dataset;
     const baseHeight = this.calcBaseHeight(data, height);
     const availableWidth = this.getAvailableWidth(config);
     return (
@@ -123,7 +123,7 @@ class LineBarChart extends AbstractChart {
                 paddingRight +
                 (i + 0.5) * availableWidth / data.length;
               const y =
-                ((baseHeight - this.calcHeight(d, data, height)) / 4) * 3 +
+                ((baseHeight - this.calcHeight(d, data, height, maxValue)) / 4) * 3 +
                 paddingTop;
               return `${x},${y}`;
             })
@@ -142,7 +142,7 @@ class LineBarChart extends AbstractChart {
   renderLine = config => {
     const { width, height, paddingRight, paddingLeft, paddingTop, dataset } = config;
 
-    const {data} = dataset;
+    const {data, maxValue} = dataset;
     const baseHeight = this.calcBaseHeight(data, height);
     const availableWidth = this.getAvailableWidth(config);
 
@@ -150,7 +150,7 @@ class LineBarChart extends AbstractChart {
       const x =
         (i + 0.5) * availableWidth / data.length + paddingRight;
       const y =
-        ((baseHeight - this.calcHeight(d, data, height)) / 4) * 3 +
+        ((baseHeight - this.calcHeight(d, data, height, maxValue)) / 4) * 3 +
         paddingTop;
       return `${x},${y}`;
     });
@@ -200,10 +200,10 @@ class LineBarChart extends AbstractChart {
 
   renderBars = config => {
     const { dataset, width, height, paddingTop, paddingRight, paddingLeft } = config;
-    const { data } = dataset;
+    const { data, maxValue } = dataset;
     const baseHeight = this.calcBaseHeight(data, height);
     return data.map((x, i) => {
-      const barHeight = this.calcHeight(x, data, height);
+      const barHeight = this.calcHeight(x, data, height, maxValue);
       const barWidth = this.getBarWidth();
       return (
         <Rect
@@ -223,10 +223,10 @@ class LineBarChart extends AbstractChart {
 
   renderBarTops = config => {
     const { dataset, width, height, paddingTop, paddingRight, paddingLeft } = config;
-    const { data } = dataset;
+    const { data, maxValue } = dataset;
     const baseHeight = this.calcBaseHeight(data, height);
     return data.map((x, i) => {
-      const barHeight = this.calcHeight(x, data, height);
+      const barHeight = this.calcHeight(x, data, height, maxValue);
       const barWidth = this.getBarWidth();
       return (
         <Rect
@@ -319,7 +319,7 @@ class LineBarChart extends AbstractChart {
                 ? this.renderHorizontalLabels({
                     ...config,
                     count: Math.min(...datas) === Math.max(...datas) ? 1 : yAxisLabelCount,
-                    data: data.datasets[0].data,
+                    dataset: data.datasets[0],
                     side: 'left',
                     paddingTop,
                     paddingRight,
@@ -333,7 +333,7 @@ class LineBarChart extends AbstractChart {
                 ? this.renderHorizontalLabels({
                     ...config,
                     count: Math.min(...datas) === Math.max(...datas) ? 1 : yAxisLabelCount,
-                    data: data.datasets[1].data,
+                    dataset: data.datasets[1],
                     side: 'right',
                     paddingTop,
                     paddingRight,
