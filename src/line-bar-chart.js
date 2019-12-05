@@ -23,6 +23,15 @@ class LineBarChart extends AbstractChart {
   getDatas = data =>
     data.reduce((acc, item) => (item.data ? [...acc, ...item.data] : acc), []);
 
+  getAvailableWidth = config => {
+    const {
+      width,
+      paddingRight,
+      paddingLeft,
+    } = config;
+    return width - paddingRight - paddingLeft;
+  }
+
   getPropsForDots = (x, i) => {
     const { getDotProps, chartConfig = {} } = this.props;
     if (typeof getDotProps === "function") {
@@ -31,6 +40,7 @@ class LineBarChart extends AbstractChart {
     const { propsForDots = {} } = chartConfig;
     return { r: "4", ...propsForDots };
   };
+
   renderDots = config => {
     const {
       data,
@@ -38,11 +48,13 @@ class LineBarChart extends AbstractChart {
       height,
       paddingTop,
       paddingRight,
+      paddingLeft,
       onDataPointClick
     } = config;
     const output = [];
     const datas = this.getDatas(data);
     const baseHeight = this.calcBaseHeight(datas, height);
+    const availableWidth = this.getAvailableWidth(config);
     const { getDotColor, hidePointsAtIndex = [] } = this.props;
     data.forEach(dataset => {
       dataset.data.forEach((x, i) => {
@@ -50,7 +62,7 @@ class LineBarChart extends AbstractChart {
           return;
         }
         const cx =
-          paddingRight + (i * (width - paddingRight)) / dataset.data.length;
+          paddingRight + (i + 0.5) * availableWidth / dataset.data.length;
         const cy =
           ((baseHeight - this.calcHeight(x, datas, height)) / 4) * 3 +
           paddingTop;
@@ -98,13 +110,10 @@ class LineBarChart extends AbstractChart {
   };
 
   renderShadow = config => {
-    if (this.props.bezier) {
-      return this.renderBezierShadow(config);
-    }
-
-    const { data, width, height, paddingRight, paddingTop } = config;
+    const { data, width, height, paddingRight, paddingLeft, paddingTop } = config;
     const datas = this.getDatas(data);
     const baseHeight = this.calcBaseHeight(datas, height);
+    const availableWidth = this.getAvailableWidth(config);
     return config.data.map((dataset, index) => {
       return (
         <Polygon
@@ -114,7 +123,7 @@ class LineBarChart extends AbstractChart {
               .map((d, i) => {
                 const x =
                   paddingRight +
-                  (i * (width - paddingRight)) / dataset.data.length;
+                  (i + 0.5) * availableWidth / dataset.data.length;
                 const y =
                   ((baseHeight - this.calcHeight(d, datas, height)) / 4) * 3 +
                   paddingTop;
@@ -122,9 +131,9 @@ class LineBarChart extends AbstractChart {
               })
               .join(" ") +
             ` ${paddingRight +
-              ((width - paddingRight) / dataset.data.length) *
-                (dataset.data.length - 1)},${(height / 4) * 3 +
-              paddingTop} ${paddingRight},${(height / 4) * 3 + paddingTop}`
+              availableWidth / dataset.data.length *
+                (dataset.data.length - 0.5)},${(height / 4) * 3 +
+              paddingTop} ${paddingRight + availableWidth / dataset.data.length * 0.5},${(height / 4) * 3 + paddingTop}`
           }
           fill="url(#fillShadowGradient)"
           strokeWidth={0}
@@ -134,18 +143,15 @@ class LineBarChart extends AbstractChart {
   };
 
   renderLine = config => {
-    if (this.props.bezier) {
-      return this.renderBezierLine(config);
-    }
-
-    const { width, height, paddingRight, paddingTop, data } = config;
+    const { width, height, paddingRight, paddingLeft, paddingTop, data } = config;
     const output = [];
     const datas = this.getDatas(data);
     const baseHeight = this.calcBaseHeight(datas, height);
+    const availableWidth = this.getAvailableWidth(config);
     data.forEach((dataset, index) => {
       const points = dataset.data.map((d, i) => {
         const x =
-          (i * (width - paddingRight)) / dataset.data.length + paddingRight;
+          (i + 0.5) * availableWidth / dataset.data.length + paddingRight;
         const y =
           ((baseHeight - this.calcHeight(d, datas, height)) / 4) * 3 +
           paddingTop;
@@ -166,39 +172,6 @@ class LineBarChart extends AbstractChart {
     return output;
   };
 
-  getBezierLinePoints = (dataset, config) => {
-    const { width, height, paddingRight, paddingTop, data } = config;
-    if (dataset.data.length === 0) {
-      return "M0,0";
-    }
-
-    const datas = this.getDatas(data);
-    const x = i =>
-      Math.floor(
-        paddingRight + (i * (width - paddingRight)) / dataset.data.length
-      );
-    const baseHeight = this.calcBaseHeight(datas, height);
-    const y = i => {
-      const yHeight = this.calcHeight(dataset.data[i], datas, height);
-      return Math.floor(((baseHeight - yHeight) / 4) * 3 + paddingTop);
-    };
-
-    return [`M${x(0)},${y(0)}`]
-      .concat(
-        dataset.data.slice(0, -1).map((_, i) => {
-          const x_mid = (x(i) + x(i + 1)) / 2;
-          const y_mid = (y(i) + y(i + 1)) / 2;
-          const cp_x1 = (x_mid + x(i)) / 2;
-          const cp_x2 = (x_mid + x(i + 1)) / 2;
-          return (
-            `Q ${cp_x1}, ${y(i)}, ${x_mid}, ${y_mid}` +
-            ` Q ${cp_x2}, ${y(i + 1)}, ${x(i + 1)}, ${y(i + 1)}`
-          );
-        })
-      )
-      .join(" ");
-  };
-
   renderLegend = config => {
     const { data } = config;
     const datas = this.getDatas(data);
@@ -211,7 +184,7 @@ class LineBarChart extends AbstractChart {
       <View>
         {data.map((dataset, index) => dataset.legend && (
           <View style={styles.legendContainer}>
-            <View style={{backgroundColor: this.getColor(dataset, 0.2), width: radius * 2, height: radius * 2, borderRadius: radius}}/>
+            <View style={{backgroundColor: this.getColor(dataset, 1), width: radius * 2, height: radius * 2, borderRadius: radius}}/>
             <Text style={[styles.legend, {color: labelColor()}]}>{dataset.legend}</Text>
           </View>
         ))}
@@ -220,90 +193,56 @@ class LineBarChart extends AbstractChart {
     return output;
   };
 
-  renderBezierLine = config => {
-    return config.data.map((dataset, index) => {
-      const result = this.getBezierLinePoints(dataset, config);
-      return (
-        <Path
-          key={index}
-          d={result}
-          fill="none"
-          stroke={this.getColor(dataset, 0.2)}
-          strokeWidth={this.getStrokeWidth(dataset)}
-        />
-      );
-    });
+  getBarWidth = () => {
+    const { barPercentage = 0.6 } = this.props.chartConfig;
+    return barPercentage * 32;
   };
 
-  renderBezierShadow = config => {
-    const { width, height, paddingRight, paddingTop, data } = config;
-    return data.map((dataset, index) => {
-      const d =
-        this.getBezierLinePoints(dataset, config) +
-        ` L${paddingRight +
-          ((width - paddingRight) / dataset.data.length) *
-            (dataset.data.length - 1)},${(height / 4) * 3 +
-          paddingTop} L${paddingRight},${(height / 4) * 3 + paddingTop} Z`;
-      return (
-        <Path
-          key={index}
-          d={d}
-          fill="url(#fillShadowGradient)"
-          strokeWidth={0}
-        />
-      );
-    });
-  };
-
-  getBarPercentage = () => {
-    const { barPercentage = 1 } = this.props.chartConfig;
-    return barPercentage;
-  };
+  getBarX = (config, barWidth, dataLength, index, wuli) => {
+    const { data, width, paddingRight, paddingLeft } = config;
+    return paddingRight +
+            ((index+0.5) * (width - paddingRight - paddingLeft)) / dataLength -
+            barWidth / 2
+  }
 
   renderBars = config => {
-    const { data, width, height, paddingTop, paddingRight } = config;
+    const { dataset, width, height, paddingTop, paddingRight, paddingLeft } = config;
+    const { data } = dataset;
     const baseHeight = this.calcBaseHeight(data, height);
     return data.map((x, i) => {
       const barHeight = this.calcHeight(x, data, height);
-      const barWidth = 32 * this.getBarPercentage();
+      const barWidth = this.getBarWidth();
       return (
         <Rect
           key={Math.random()}
-          x={
-            paddingRight +
-            (i * (width - paddingRight)) / data.length +
-            barWidth / 2
-          }
+          x={this.getBarX(config, barWidth, data.length, i)}
           y={
             ((barHeight > 0 ? baseHeight - barHeight : baseHeight) / 4) * 3 +
             paddingTop
           }
           width={barWidth}
           height={(Math.abs(barHeight) / 4) * 3}
-          fill="url(#fillShadowGradient)"
+          fill={this.getColor(dataset, 0.35)}
         />
       );
     });
   };
 
   renderBarTops = config => {
-    const { data, width, height, paddingTop, paddingRight } = config;
+    const { dataset, width, height, paddingTop, paddingRight, paddingLeft } = config;
+    const { data } = dataset;
     const baseHeight = this.calcBaseHeight(data, height);
     return data.map((x, i) => {
       const barHeight = this.calcHeight(x, data, height);
-      const barWidth = 32 * this.getBarPercentage();
+      const barWidth = this.getBarWidth();
       return (
         <Rect
           key={Math.random()}
-          x={
-            paddingRight +
-            (i * (width - paddingRight)) / data.length +
-            barWidth / 2
-          }
+          x={this.getBarX(config, barWidth, data.length, i)}
           y={((baseHeight - barHeight) / 4) * 3 + paddingTop}
           width={barWidth}
           height={2}
-          fill={this.props.chartConfig.color(0.6)}
+          fill={this.getColor(dataset, 1)}
         />
       );
     });
@@ -321,7 +260,6 @@ class LineBarChart extends AbstractChart {
       withHorizontalLabels = true,
       withVerticalLabels = true,
       style = {},
-      decorator,
       onDataPointClick,
       verticalLabelRotation = 0,
       horizontalLabelRotation = 0,
@@ -335,6 +273,7 @@ class LineBarChart extends AbstractChart {
       borderRadius = 0,
       paddingTop = 16,
       paddingRight = 64,
+      paddingLeft = 64,
       margin = 0,
       marginRight = 0,
       paddingBottom = 0,
@@ -370,13 +309,15 @@ class LineBarChart extends AbstractChart {
                     ...config,
                     count: yAxisLabelCount,
                     paddingTop,
-                    paddingRight
+                    paddingRight,
+                    paddingLeft,
                   })
                 : withOuterLines
                 ? this.renderHorizontalLine({
                     ...config,
                     paddingTop,
-                    paddingRight
+                    paddingRight,
+                    paddingLeft,
                   })
                 : null}
             </G>
@@ -385,9 +326,25 @@ class LineBarChart extends AbstractChart {
                 ? this.renderHorizontalLabels({
                     ...config,
                     count: Math.min(...datas) === Math.max(...datas) ? 1 : yAxisLabelCount,
-                    data: datas,
+                    data: data.datasets[0].data,
+                    side: 'left',
                     paddingTop,
                     paddingRight,
+                    paddingLeft,
+                    formatYLabel
+                  })
+                : null}
+            </G>
+            <G>
+              {withHorizontalLabels
+                ? this.renderHorizontalLabels({
+                    ...config,
+                    count: Math.min(...datas) === Math.max(...datas) ? 1 : yAxisLabelCount,
+                    data: data.datasets[1].data,
+                    side: 'right',
+                    paddingTop,
+                    paddingRight,
+                    paddingLeft,
                     formatYLabel
                   })
                 : null}
@@ -398,13 +355,15 @@ class LineBarChart extends AbstractChart {
                     ...config,
                     data: data.datasets[0].data,
                     paddingTop,
-                    paddingRight
+                    paddingRight,
+                    paddingLeft,
                   })
                 : withOuterLines
                 ? this.renderVerticalLine({
                     ...config,
                     paddingTop,
-                    paddingRight
+                    paddingRight,
+                    paddingLeft,
                   })
                 : null}
             </G>
@@ -414,6 +373,7 @@ class LineBarChart extends AbstractChart {
                     ...config,
                     labels,
                     paddingRight,
+                    paddingLeft,
                     paddingTop,
                     formatXLabel
                   })
@@ -423,6 +383,7 @@ class LineBarChart extends AbstractChart {
               {this.renderLine({
                 ...config,
                 paddingRight,
+                paddingLeft,
                 paddingTop,
                 data: data.datasets
               })}
@@ -433,6 +394,7 @@ class LineBarChart extends AbstractChart {
                   ...config,
                   data: data.datasets,
                   paddingRight,
+                  paddingLeft,
                   paddingTop
                 })}
             </G>
@@ -443,32 +405,26 @@ class LineBarChart extends AbstractChart {
                   data: data.datasets,
                   paddingTop,
                   paddingRight,
+                  paddingLeft,
                   onDataPointClick
-                })}
-            </G>
-            <G>
-              {decorator &&
-                decorator({
-                  ...config,
-                  data: data.datasets,
-                  paddingTop,
-                  paddingRight
                 })}
             </G>
             <G>
               {this.renderBars({
                 ...config,
-                data: data.datasets[0].data,
+                dataset: data.datasets[0],
                 paddingTop,
-                paddingRight
+                paddingRight,
+                paddingLeft
               })}
             </G>
             <G>
               {this.renderBarTops({
                 ...config,
-                data: data.datasets[0].data,
+                dataset: data.datasets[0],
                 paddingTop,
-                paddingRight
+                paddingRight,
+                paddingLeft
               })}
             </G>
           </G>

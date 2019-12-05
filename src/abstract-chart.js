@@ -156,10 +156,12 @@ class AbstractChart extends Component {
       width,
       height,
       paddingRight,
+      paddingLeft = 0,
       paddingTop,
       horizontalOffset = 0,
       stackedBar = false,
       verticalLabelRotation = 0,
+      position = 'start',
       formatXLabel = xLabel => xLabel
     } = config;
     const {
@@ -177,7 +179,7 @@ class AbstractChart extends Component {
         return null;
       }
       const x =
-        (((width - paddingRight) / labels.length) * i +
+        (((width - paddingRight - paddingLeft) / labels.length) * (i + (position === 'center' ? 0.5 : 0)) +
           paddingRight +
           horizontalOffset) *
         fac;
