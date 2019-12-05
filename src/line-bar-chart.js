@@ -43,7 +43,7 @@ class LineBarChart extends AbstractChart {
 
   renderDots = config => {
     const {
-      data,
+      dataset,
       width,
       height,
       paddingTop,
@@ -52,124 +52,117 @@ class LineBarChart extends AbstractChart {
       onDataPointClick
     } = config;
     const output = [];
-    const datas = this.getDatas(data);
-    const baseHeight = this.calcBaseHeight(datas, height);
+    const {data} = dataset;
+    const baseHeight = this.calcBaseHeight(data, height);
     const availableWidth = this.getAvailableWidth(config);
     const { getDotColor, hidePointsAtIndex = [] } = this.props;
-    data.forEach(dataset => {
-      dataset.data.forEach((x, i) => {
-        if (hidePointsAtIndex.includes(i)) {
+
+    data.forEach((x, i) => {
+      if (hidePointsAtIndex.includes(i)) {
+        return;
+      }
+      const cx =
+        paddingRight + (i + 0.5) * availableWidth / data.length;
+      const cy =
+        ((baseHeight - this.calcHeight(x, data, height)) / 4) * 3 +
+        paddingTop;
+      const onPress = () => {
+        if (!onDataPointClick || hidePointsAtIndex.includes(i)) {
           return;
         }
-        const cx =
-          paddingRight + (i + 0.5) * availableWidth / dataset.data.length;
-        const cy =
-          ((baseHeight - this.calcHeight(x, datas, height)) / 4) * 3 +
-          paddingTop;
-        const onPress = () => {
-          if (!onDataPointClick || hidePointsAtIndex.includes(i)) {
-            return;
+
+        onDataPointClick({
+          index: i,
+          value: x,
+          dataset,
+          x: cx,
+          y: cy,
+          getColor: opacity => this.getColor(dataset, opacity)
+        });
+      };
+
+      output.push(
+        <Circle
+          key={Math.random()}
+          cx={cx}
+          cy={cy}
+          fill={
+            typeof getDotColor === "function"
+              ? getDotColor(x, i)
+              : this.getColor(dataset, 0.9)
           }
-
-          onDataPointClick({
-            index: i,
-            value: x,
-            dataset,
-            x: cx,
-            y: cy,
-            getColor: opacity => this.getColor(dataset, opacity)
-          });
-        };
-
-        output.push(
-          <Circle
-            key={Math.random()}
-            cx={cx}
-            cy={cy}
-            fill={
-              typeof getDotColor === "function"
-                ? getDotColor(x, i)
-                : this.getColor(dataset, 0.9)
-            }
-            onPress={onPress}
-            {...this.getPropsForDots(x, i)}
-          />,
-          <Circle
-            key={Math.random()}
-            cx={cx}
-            cy={cy}
-            r="12"
-            fill="#fff"
-            fillOpacity={0}
-            onPress={onPress}
-          />
-        );
-      });
+          onPress={onPress}
+          {...this.getPropsForDots(x, i)}
+        />,
+        <Circle
+          key={Math.random()}
+          cx={cx}
+          cy={cy}
+          r="12"
+          fill="#fff"
+          fillOpacity={0}
+          onPress={onPress}
+        />
+      );
     });
+
     return output;
   };
 
   renderShadow = config => {
-    const { data, width, height, paddingRight, paddingLeft, paddingTop } = config;
-    const datas = this.getDatas(data);
-    const baseHeight = this.calcBaseHeight(datas, height);
+    const { dataset, width, height, paddingRight, paddingLeft, paddingTop } = config;
+    const {data} = dataset;
+    const baseHeight = this.calcBaseHeight(data, height);
     const availableWidth = this.getAvailableWidth(config);
-    return config.data.map((dataset, index) => {
-      return (
-        <Polygon
-          key={index}
-          points={
-            dataset.data
-              .map((d, i) => {
-                const x =
-                  paddingRight +
-                  (i + 0.5) * availableWidth / dataset.data.length;
-                const y =
-                  ((baseHeight - this.calcHeight(d, datas, height)) / 4) * 3 +
-                  paddingTop;
-                return `${x},${y}`;
-              })
-              .join(" ") +
-            ` ${paddingRight +
-              availableWidth / dataset.data.length *
-                (dataset.data.length - 0.5)},${(height / 4) * 3 +
-              paddingTop} ${paddingRight + availableWidth / dataset.data.length * 0.5},${(height / 4) * 3 + paddingTop}`
-          }
-          fill="url(#fillShadowGradient)"
-          strokeWidth={0}
-        />
-      );
-    });
+    return (
+      <Polygon
+        points={
+          data
+            .map((d, i) => {
+              const x =
+                paddingRight +
+                (i + 0.5) * availableWidth / data.length;
+              const y =
+                ((baseHeight - this.calcHeight(d, data, height)) / 4) * 3 +
+                paddingTop;
+              return `${x},${y}`;
+            })
+            .join(" ") +
+          ` ${paddingRight +
+            availableWidth / data.length *
+              (data.length - 0.5)},${(height / 4) * 3 +
+            paddingTop} ${paddingRight + availableWidth / data.length * 0.5},${(height / 4) * 3 + paddingTop}`
+        }
+        fill="url(#fillShadowGradient)"
+        strokeWidth={0}
+      />
+    );
   };
 
   renderLine = config => {
-    const { width, height, paddingRight, paddingLeft, paddingTop, data } = config;
-    const output = [];
-    const datas = this.getDatas(data);
-    const baseHeight = this.calcBaseHeight(datas, height);
-    const availableWidth = this.getAvailableWidth(config);
-    data.forEach((dataset, index) => {
-      const points = dataset.data.map((d, i) => {
-        const x =
-          (i + 0.5) * availableWidth / dataset.data.length + paddingRight;
-        const y =
-          ((baseHeight - this.calcHeight(d, datas, height)) / 4) * 3 +
-          paddingTop;
-        return `${x},${y}`;
-      });
+    const { width, height, paddingRight, paddingLeft, paddingTop, dataset } = config;
 
-      output.push(
-        <Polyline
-          key={index}
-          points={points.join(" ")}
-          fill="none"
-          stroke={this.getColor(dataset, 0.2)}
-          strokeWidth={this.getStrokeWidth(dataset)}
-        />
-      );
+    const {data} = dataset;
+    const baseHeight = this.calcBaseHeight(data, height);
+    const availableWidth = this.getAvailableWidth(config);
+
+    const points = data.map((d, i) => {
+      const x =
+        (i + 0.5) * availableWidth / data.length + paddingRight;
+      const y =
+        ((baseHeight - this.calcHeight(d, data, height)) / 4) * 3 +
+        paddingTop;
+      return `${x},${y}`;
     });
 
-    return output;
+    return (
+      <Polyline
+        points={points.join(" ")}
+        fill="none"
+        stroke={this.getColor(dataset, 0.2)}
+        strokeWidth={this.getStrokeWidth(dataset)}
+      />
+    );
   };
 
   renderLegend = config => {
@@ -385,14 +378,14 @@ class LineBarChart extends AbstractChart {
                 paddingRight,
                 paddingLeft,
                 paddingTop,
-                data: data.datasets
+                dataset: data.datasets[1]
               })}
             </G>
             <G>
               {withShadow &&
                 this.renderShadow({
                   ...config,
-                  data: data.datasets,
+                  dataset: data.datasets[1],
                   paddingRight,
                   paddingLeft,
                   paddingTop
@@ -402,7 +395,7 @@ class LineBarChart extends AbstractChart {
               {withDots &&
                 this.renderDots({
                   ...config,
-                  data: data.datasets,
+                  dataset: data.datasets[1],
                   paddingTop,
                   paddingRight,
                   paddingLeft,
