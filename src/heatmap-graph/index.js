@@ -22,7 +22,7 @@ class HeatmapGraph extends AbstractChart {
   constructor(props) {
     super(props);
     this.state = {
-      datasetCache: props.dataset,
+      dataset: props.dataset,
       yLabels: this.getYLabels(props.dataset),
       xLabels: this.getXLabels(props.dataset),
     };
@@ -31,7 +31,7 @@ class HeatmapGraph extends AbstractChart {
   componentWillReceiveProps(nextProps) {
     if (JSON.stringify(this.props.dataset) !== JSON.stringify(nextProps.dataset)) {
       this.setState({
-        datasetCache: this.getDatasetCache(nextProps.dataset),
+        dataset: nextProps.dataset,
         yLabels: this.getYLabels(nextProps.dataset),
         xLabels: this.getXLabels(nextProps.dataset),
       });
@@ -74,11 +74,11 @@ class HeatmapGraph extends AbstractChart {
   }
 
   getXLabels(dataset) {
-    return new Set(this.props.xLabels || dataset.map(datasetElement => datasetElement.xLabel))
+    return Array.from(new Set(this.props.xLabels || dataset.map(datasetElement => datasetElement.xLabel)))
   }
 
   getYLabels(dataset) {
-    return new Set(this.props.yLabels || dataset.map(datasetElement => datasetElement.yLabel))
+    return Array.from(new Set(this.props.yLabels || dataset.map(datasetElement => datasetElement.yLabel)))
   }
 
   getWeekCount() {
@@ -95,7 +95,7 @@ class HeatmapGraph extends AbstractChart {
 
   getValueForCoordinates(rowIndex, columnIndex) {
     const { yLabels, xLabels } = this.state;
-    for (const datasetElement of this.state.datasetCache){
+    for (const datasetElement of this.state.dataset){
       if (yLabels[rowIndex] === datasetElement.yLabel && 
         xLabels[columnIndex] === datasetElement.xLabel
       ) {
@@ -105,23 +105,27 @@ class HeatmapGraph extends AbstractChart {
     return null;
   }
 
-  getClassNameForIndex(rowIndex, columnIndex) {
+  getColorForIndex(rowIndex, columnIndex) {
+    const { valueColorChart } = this.props;
     const value = this.getValueForCoordinates(rowIndex, columnIndex);
-    console.log(rowIndex, columnIndex, value)
-    const opacity = (value * 0.15 > 1 ? 1 : count * 0.15) + 0.15;
+    if (valueColorChart) {
+      return valueColorChart[value ? value.toString() : 'null']
+    }
+
+    const opacity = (value * 0.15 > 1 ? 1 : value * 0.15) + 0.15;
     return this.props.chartConfig.color(opacity);
   }
 
   getTitleForIndex(index) {
-    if (this.state.datasetCache[index]) {
-      return this.state.datasetCache[index].title;
+    if (this.state.dataset[index]) {
+      return this.state.dataset[index].title;
     }
     return this.props.titleForValue ? this.props.titleForValue(null) : null;
   }
 
   getTooltipDataAttrsForIndex(index) {
-    if (this.state.datasetCache[index]) {
-      return this.state.datasetCache[index].tooltipDataAttrs;
+    if (this.state.dataset[index]) {
+      return this.state.dataset[index].tooltipDataAttrs;
     }
     return this.getTooltipDataAttrsForValue({ date: null, count: null });
   }
@@ -137,7 +141,7 @@ class HeatmapGraph extends AbstractChart {
 
   getTransformForColumn(rowIndex) {
     if (this.props.horizontal) {
-      return [rowIndex * this.getSquareSizeWithGutter(), 50];
+      return [rowIndex * this.getSquareSizeWithGutter(), 30];
     }
     return [10, rowIndex * this.getSquareSizeWithGutter()];
   }
@@ -171,10 +175,10 @@ class HeatmapGraph extends AbstractChart {
         key={rowIndex.toString() + columnIndex.toString()}
         width={squareSize}
         height={squareSize}
-        x={x + paddingLeft}
+        x={x}
         y={y}
         title={this.getTitleForIndex(rowIndex, columnIndex)}
-        fill={this.getClassNameForIndex(rowIndex, columnIndex)}
+        fill={this.getColorForIndex(rowIndex, columnIndex)}
         {...this.getTooltipDataAttrsForIndex(rowIndex, columnIndex)}
       />
     );
@@ -184,7 +188,7 @@ class HeatmapGraph extends AbstractChart {
     const [x, y] = this.getTransformForColumn(columnIndex);
     return (
       <G key={columnIndex} x={x} y={y}>
-        {_.range(this.state.yLabels.size).map(rowIndex =>
+        {_.range(this.state.yLabels.length).map(rowIndex =>
           this.renderSquare(rowIndex, columnIndex)
         )}
       </G>
@@ -192,8 +196,45 @@ class HeatmapGraph extends AbstractChart {
   }
 
   renderAllColumns() {
-    return _.range(this.state.xLabels.size).map(columnIndex =>
+    return _.range(this.state.xLabels.length).map(columnIndex =>
       this.renderColumn(columnIndex)
+    );
+  }
+
+  renderAllHorizontalLabels(config) {
+    const { yLabelsOffset = 4, yLabelTransformationMap, style = {} } = this.props;
+    let {
+      paddingRight = 64,
+    } = config;
+
+    return this.state.yLabels.map((yLabel, i) => {
+
+      const x = paddingRight - yLabelsOffset;
+      const y = (i + 0.55) * this.getSquareSizeWithGutter();
+      if (yLabelTransformationMap) {
+        yLabel = yLabelTransformationMap[yLabel.toString()]
+      }
+      return(
+        <Text
+          origin={`${x}, ${y}`}
+          key={Math.random()}
+          x={x}
+          y={y}
+          textAnchor="end"
+          {...this.getPropsForLabels()}
+        >
+          {yLabel}
+        </Text>
+      )
+    });
+  };
+
+  renderHorizontalLabelsWithoutScaling(config) {
+    const [x, y] = this.getTransformForColumn(0);
+    return (
+      <G x={x} y={y}>
+        {this.renderAllHorizontalLabels(config)}
+      </G>
     );
   }
 
@@ -222,34 +263,43 @@ class HeatmapGraph extends AbstractChart {
   }
 
   render() {
-    const { style = {} } = this.props;
-    let { borderRadius = 0 } = style;
+    const { yLabels } = this.state;
+    const { style = {}, backgroundColor, squareSize = SQUARE_SIZE, height, } = this.props;
+    let {
+      borderRadius = 0,
+      paddingRight = 64,
+    } = style;
     if (!borderRadius && this.props.chartConfig.style) {
       const stupidXo = this.props.chartConfig.style.borderRadius;
       borderRadius = stupidXo;
     }
 
-    console.log({
-      "yLabelCount": this.state.yLabelCount,
-      "xLabelCount": this.state.xLabelCount
-    })
+    const chartWidth = squareSize * this.state.dataset.length
+    const config = {
+      chartWidth,
+      height,
+    };
+
     return (
-      <View style={style}>
-        <Svg height={this.props.height} width={this.props.width}>
+      <View style={[style, {backgroundColor}]}>
+        <Svg height={height} width={chartWidth}>
           {this.renderDefs({
-            width: this.props.width,
-            height: this.props.height,
+            width: chartWidth,
+            height: height,
             ...this.props.chartConfig
           })}
           <Rect
             width="100%"
-            height={this.props.height}
+            height={height}
             rx={borderRadius}
             ry={borderRadius}
-            fill="url(#backgroundGradient)"
+            fill={backgroundColor}
           />
+          {this.renderHorizontalLabelsWithoutScaling({
+            paddingRight
+          })}
           <G>{this.renderMonthLabels()}</G>
-          <G>{this.renderAllColumns()}</G>
+          <G x={paddingRight}>{this.renderAllColumns()}</G>
         </Svg>
       </View>
     );

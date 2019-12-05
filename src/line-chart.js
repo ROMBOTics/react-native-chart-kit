@@ -202,14 +202,13 @@ class LineChart extends AbstractChart {
   renderLegend = config => {
     const { data } = config;
     const datas = this.getDatas(data);
-
     //get radius for dot
     const { chartConfig = {}} = this.props
     const { propsForDots = {}, labelColor = () => '#000000' } = chartConfig;
     const { r } = propsForDots
     const radius = parseInt(r, 10)
     return (
-      <View style={{}}>
+      <View>
         {data.map((dataset, index) => dataset.legend && (
           <View style={styles.legendContainer}>
             <View style={{backgroundColor: this.getColor(dataset, 0.2), width: radius * 2, height: radius * 2, borderRadius: radius}}/>
@@ -218,8 +217,6 @@ class LineChart extends AbstractChart {
         ))}
       </View>
     )
-    
-
     return output;
   };
 
