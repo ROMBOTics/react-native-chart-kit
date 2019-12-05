@@ -63,14 +63,14 @@ class AbstractChart extends Component {
   }
 
   renderHorizontalLines = config => {
-    const { count, width, height, paddingTop, paddingRight } = config;
+    const { count, width, height, paddingTop, paddingRight, paddingLeft = 0 } = config;
     return [...new Array(count)].map((_, i) => {
       return (
         <Line
           key={Math.random()}
           x1={paddingRight}
           y1={(height / count) * i + paddingTop}
-          x2={width}
+          x2={width - paddingLeft}
           y2={(height / count) * i + paddingTop}
           {...this.getPropsForBackgroundLines()}
         />
@@ -79,13 +79,13 @@ class AbstractChart extends Component {
   };
 
   renderHorizontalLine = config => {
-    const { width, height, paddingTop, paddingRight } = config;
+    const { width, height, paddingTop, paddingRight, paddingLeft = 0 } = config;
     return (
       <Line
         key={Math.random()}
         x1={paddingRight}
         y1={height - height / 4 + paddingTop}
-        x2={width}
+        x2={width - paddingLeft}
         y2={height - height / 4 + paddingTop}
         {...this.getPropsForBackgroundLines()}
       />
@@ -97,10 +97,13 @@ class AbstractChart extends Component {
       count,
       data,
       height,
+      width,
       paddingTop,
       paddingRight,
+      paddingLeft,
       horizontalLabelRotation = 0,
-      formatYLabel = yLabel => yLabel
+      formatYLabel = yLabel => yLabel,
+      side,
     } = config;
     const {
       yAxisLabel = "",
@@ -125,7 +128,8 @@ class AbstractChart extends Component {
         )}${yAxisSuffix}`;
       }
 
-      const x = paddingRight - yLabelsOffset;
+     
+      const x = side === "right" ? (width - paddingLeft + yLabelsOffset) : (paddingRight - yLabelsOffset);
       const y =
         count === 1 && this.props.fromZero
           ? paddingTop + 4
@@ -136,7 +140,7 @@ class AbstractChart extends Component {
           origin={`${x}, ${y}`}
           key={Math.random()}
           x={x}
-          textAnchor="end"
+          textAnchor={side === "right" ? "start" : "end"}
           y={y}
           {...this.getPropsForLabels()}
         >
@@ -195,18 +199,15 @@ class AbstractChart extends Component {
   };
 
   renderVerticalLines = config => {
-    const { data, width, height, paddingTop, paddingRight } = config;
-    return [...new Array(data.length)].map((_, i) => {
+    const { data, width, height, paddingTop, paddingRight, paddingLeft = 0 } = config;
+    return [...new Array(data.length + 1)].map((_, i) => {
+      let x = Math.floor( ((width - paddingRight - paddingLeft) / data.length) * i + paddingRight)
       return (
         <Line
           key={Math.random()}
-          x1={Math.floor(
-            ((width - paddingRight) / data.length) * i + paddingRight
-          )}
+          x1={x}
           y1={0}
-          x2={Math.floor(
-            ((width - paddingRight) / data.length) * i + paddingRight
-          )}
+          x2={x}
           y2={height - height / 4 + paddingTop}
           {...this.getPropsForBackgroundLines()}
         />
