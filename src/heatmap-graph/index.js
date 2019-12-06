@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { View } from "react-native";
+import { View, StyleSheet, Text as NativeText } from "react-native";
 import { Svg, G, Text, Rect } from "react-native-svg";
 import _ from "lodash";
 import AbstractChart from "../abstract-chart";
@@ -18,6 +18,10 @@ import {
 const SQUARE_SIZE = 20;
 const MONTH_LABEL_GUTTER_SIZE = 8;
 const paddingLeft = 32;
+
+//TODO: FACTOR BELOW CODE OUT
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 class HeatmapGraph extends AbstractChart {
   constructor(props) {
     super(props);
@@ -106,10 +110,10 @@ class HeatmapGraph extends AbstractChart {
   }
 
   getColorForIndex(rowIndex, columnIndex) {
-    const { valueColorChart } = this.props;
+    const { valueConfig } = this.props;
     const value = this.getValueForCoordinates(rowIndex, columnIndex);
-    if (valueColorChart) {
-      return valueColorChart[value ? value.toString() : 'null']
+    if (valueConfig) {
+      return valueConfig[value ? value.toString() : 'null'].color
     }
 
     const opacity = (value * 0.15 > 1 ? 1 : value * 0.15) + 0.15;
@@ -238,7 +242,54 @@ class HeatmapGraph extends AbstractChart {
     );
   }
 
-  renderMonthLabels() {
+  //TODO start: current implementattion is hacky, use D3 instead
+
+  
+
+  convertDateToFormattedString(datasetElement, currentPeriod) {
+    let date = new Date(datasetElement);
+    switch (currentPeriod) {
+      case 'day':
+        return DAYS[date.getDay()];
+      case 'week':
+        return date.getMonth() + '-' + date.getDate();
+      case 'month':
+        return date.getMonth() + '-' + date.getDate();
+    }
+  }
+
+  getLabelScaling(currentPeriod) {
+    switch (currentPeriod) {
+      case 'day':
+        return 2;
+      case 'week':
+        return 3;
+      case 'month':
+        return 3;
+    }
+  }
+
+  renderTimeLabels() {
+    const {currentPeriod} = this.props
+
+    return _.range(this.state.xLabels.length).map(columnIndex => {
+      const [x, y_] = this.getTransformForColumn(columnIndex);
+      const [x_, y] = this.getSquareCoordinates(5);
+      if (columnIndex%(this.getLabelScaling(currentPeriod))===0) {
+        return (
+          <Text
+            origin={`${x}, ${y}`}
+            key={Math.random()}
+            x={x}
+            y={y}
+
+            {...this.getPropsForLabels()}
+          >
+            {this.convertDateToFormattedString(this.state.xLabels[columnIndex], currentPeriod)}
+          </Text>
+        );
+      }
+    });
     /*if (!this.props.showMonthLabels) {
       return null;
     }
@@ -261,10 +312,42 @@ class HeatmapGraph extends AbstractChart {
       ) : null;
     });*/
   }
+  //TODO: end
+
+  getColorForIndex(rowIndex, columnIndex) {
+    const { valueConfig } = this.props;
+    const value = this.getValueForCoordinates(rowIndex, columnIndex);
+    if (valueConfig) {
+      return valueConfig[value ? value.toString() : 'null'].color
+    }
+
+    const opacity = (value * 0.15 > 1 ? 1 : value * 0.15) + 0.15;
+    return this.props.chartConfig.color(opacity);
+  }
+
+  renderLegend = () => {
+    const { valueConfig, chartConfig = {}} = this.props;
+
+    //get radius for dot
+    const { propsForDots = {}, labelColor = () => '#000000' } = chartConfig;
+    const { r = '6' } = propsForDots
+    const radius = parseInt(r, 10)
+    return (
+      <View>
+        {Object.keys(valueConfig).map((value, index) => valueConfig[value].legend && (
+          <View key={index.toString()} style={styles.legendContainer}>
+            <View style={{backgroundColor: valueConfig[value].color, width: radius * 2, height: radius * 2, borderRadius: radius}}/>
+            <NativeText style={[styles.legend, {color: labelColor()}]}>{valueConfig[value].legend}</NativeText>
+          </View>
+        ))}
+      </View>
+    )
+    return output;
+  };
 
   render() {
     const { yLabels } = this.state;
-    const { style = {}, backgroundColor, squareSize = SQUARE_SIZE, height, } = this.props;
+    const { style = {}, backgroundColor, squareSize = SQUARE_SIZE, height, width } = this.props;
     let {
       borderRadius = 0,
       paddingRight = 64,
@@ -274,7 +357,7 @@ class HeatmapGraph extends AbstractChart {
       borderRadius = stupidXo;
     }
 
-    const chartWidth = squareSize * this.state.dataset.length
+    const chartWidth = squareSize * this.state.xLabels.length + paddingRight * 2
     const config = {
       chartWidth,
       height,
@@ -282,7 +365,7 @@ class HeatmapGraph extends AbstractChart {
 
     return (
       <View style={[style, {backgroundColor}]}>
-        <Svg height={height} width={chartWidth}>
+        <Svg height={height} width={Math.max(chartWidth, width) }>
           {this.renderDefs({
             width: chartWidth,
             height: height,
@@ -298,9 +381,10 @@ class HeatmapGraph extends AbstractChart {
           {this.renderHorizontalLabelsWithoutScaling({
             paddingRight
           })}
-          <G>{this.renderMonthLabels()}</G>
+          <G x={paddingRight}>{this.renderTimeLabels()}</G>
           <G x={paddingRight}>{this.renderAllColumns()}</G>
         </Svg>
+        {this.renderLegend()}
       </View>
     );
   }
@@ -344,5 +428,18 @@ HeatmapGraph.defaultProps = {
   showOutOfRangeDays: false,
   classForValue: value => (value ? "black" : "#8cc665")
 };
+
+const styles = StyleSheet.create({
+  legendContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 4,
+    marginLeft: 60,
+  },
+  legend: {
+    paddingLeft: 6,
+    fontSize: 16,
+  },
+});
 
 export default HeatmapGraph;

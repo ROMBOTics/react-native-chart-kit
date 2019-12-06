@@ -205,7 +205,6 @@ class AbstractChart extends Component {
     const { data, width, height, paddingTop, paddingRight, paddingLeft = 0 } = config;
     return [...new Array(data.length + 1)].map((_, i) => {
       let x = Math.floor( ((width - paddingRight - paddingLeft) / data.length) * i + paddingRight)
-      console.log("renderVerticalLines: ", x, i)
       return (
         <Line
           key={Math.random()}
