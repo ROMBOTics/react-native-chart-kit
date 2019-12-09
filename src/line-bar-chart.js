@@ -368,7 +368,8 @@ class LineBarChart extends AbstractChart {
                     paddingRight,
                     paddingLeft,
                     paddingTop,
-                    formatXLabel
+                    formatXLabel,
+                    position: 'center',
                   })
                 : null}
             </G>
