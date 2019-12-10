@@ -42,6 +42,10 @@ class HeatmapGraph extends AbstractChart {
     }
   }
 
+  getColor = (dataset, opacity) => {
+    return dataset.color || this.props.chartConfig.color;
+  };
+
   getSquareSizeWithGutter() {
     return (this.props.squareSize || SQUARE_SIZE) + this.props.gutterSize;
   }
@@ -325,29 +329,9 @@ class HeatmapGraph extends AbstractChart {
     return this.props.chartConfig.color(opacity);
   }
 
-  renderLegend = () => {
-    const { valueConfig, chartConfig = {}} = this.props;
-
-    //get radius for dot
-    const { propsForDots = {}, labelColor = () => '#000000' } = chartConfig;
-    const { r = '6' } = propsForDots
-    const radius = parseInt(r, 10)
-    return (
-      <View>
-        {Object.keys(valueConfig).map((value, index) => valueConfig[value].legend && (
-          <View key={index.toString()} style={styles.legendContainer}>
-            <View style={{backgroundColor: valueConfig[value].color, width: radius * 2, height: radius * 2, borderRadius: radius}}/>
-            <NativeText style={[styles.legend, {color: labelColor()}]}>{valueConfig[value].legend}</NativeText>
-          </View>
-        ))}
-      </View>
-    )
-    return output;
-  };
-
   render() {
     const { yLabels } = this.state;
-    const { style = {}, backgroundColor, squareSize = SQUARE_SIZE, height, width } = this.props;
+    const { style = {}, backgroundColor, squareSize = SQUARE_SIZE, height, width, valueConfig = {} } = this.props;
     let {
       borderRadius = 0,
       paddingRight = 64,
@@ -384,7 +368,10 @@ class HeatmapGraph extends AbstractChart {
           <G x={paddingRight}>{this.renderTimeLabels()}</G>
           <G x={paddingRight}>{this.renderAllColumns()}</G>
         </Svg>
-        {this.renderLegend()}
+        {this.renderLegend({
+          data: Object.keys(valueConfig).map((key)=> valueConfig[key]),
+          paddingRight
+        })}
       </View>
     );
   }

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View } from "react-native";
 import {
   Svg,
   Circle,
@@ -163,27 +163,6 @@ class LineBarChart extends AbstractChart {
         strokeWidth={this.getStrokeWidth(dataset)}
       />
     );
-  };
-
-  renderLegend = config => {
-    const { data } = config;
-    const datas = this.getDatas(data);
-    //get radius for dot
-    const { chartConfig = {}} = this.props
-    const { propsForDots = {}, labelColor = () => '#000000' } = chartConfig;
-    const { r } = propsForDots
-    const radius = parseInt(r, 10)
-    return (
-      <View>
-        {data.map((dataset, index) => dataset.legend && (
-          <View key={index.toString()} style={styles.legendContainer}>
-            <View style={{backgroundColor: this.getColor(dataset, 1), width: radius * 2, height: radius * 2, borderRadius: radius}}/>
-            <Text style={[styles.legend, {color: labelColor()}]}>{dataset.legend}</Text>
-          </View>
-        ))}
-      </View>
-    )
-    return output;
   };
 
   getBarWidth = () => {
@@ -424,24 +403,12 @@ class LineBarChart extends AbstractChart {
           </G>
         </Svg>
         {this.renderLegend({
-           data: data.datasets,
+          data: data.datasets,
+          paddingRight,
         })}
       </View>
     );
   }
 }
-
-const styles = StyleSheet.create({
-  legendContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 4,
-    marginLeft: 60
-  },
-  legend: {
-    paddingLeft: 6,
-    fontSize: 16,
-  },
-});
 
 export default LineBarChart;

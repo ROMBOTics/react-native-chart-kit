@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-
+import { View, Text as RNText, StyleSheet } from "react-native";
 import { LinearGradient, Line, Text, Defs, Stop } from "react-native-svg";
 
 class AbstractChart extends Component {
@@ -232,6 +232,27 @@ class AbstractChart extends Component {
     );
   };
 
+  renderLegend = config => {
+    const { data, paddingRight } = config;
+    //get radius for dot
+    const { chartConfig = {}} = this.props
+    const { propsForDots = {}, labelColor = () => '#000000' } = chartConfig;
+    const { r = '6' } = propsForDots
+    const radius = parseInt(r, 10)
+    console.log("radius", radius)
+    return (
+      <View>
+        {data.map((dataset, index) => dataset.legend && (
+          <View key={index.toString()} style={[styles.legendContainer, {marginLeft: paddingRight}]}>
+            <View style={{backgroundColor: this.getColor(dataset, 1), width: radius * 2, height: radius * 2, borderRadius: radius}}/>
+            <RNText style={[styles.legend, {color: labelColor()}]}>{dataset.legend}</RNText>
+          </View>
+        ))}
+      </View>
+    )
+  };
+
+
   renderDefs = config => {
     const {
       width,
@@ -294,5 +315,17 @@ class AbstractChart extends Component {
     );
   };
 }
+
+const styles = StyleSheet.create({
+  legendContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 4,
+  },
+  legend: {
+    paddingLeft: 6,
+    fontSize: 16,
+  },
+});
 
 export default AbstractChart;
