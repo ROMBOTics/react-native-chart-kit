@@ -250,7 +250,7 @@ class HeatmapGraph extends AbstractChart {
     let date = new Date(datasetElement);
     switch (currentPeriod) {
       case 'day':
-        return DAYS[date.getDay()];
+        return this.props.daysLabels[date.getDay()];
       case 'week':
         return date.getMonth() + '-' + date.getDate();
       case 'month':
