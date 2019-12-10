@@ -16,12 +16,7 @@ import {
 } from "./dateHelpers";
 
 const SQUARE_SIZE = 20;
-const MONTH_LABEL_GUTTER_SIZE = 8;
-const paddingLeft = 32;
 
-//TODO: FACTOR BELOW CODE OUT
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 class HeatmapGraph extends AbstractChart {
   constructor(props) {
     super(props);
@@ -50,55 +45,16 @@ class HeatmapGraph extends AbstractChart {
     return (this.props.squareSize || SQUARE_SIZE) + this.props.gutterSize;
   }
 
-  getMonthLabelSize() {
-    let { squareSize = SQUARE_SIZE } = this.props;
-    if (!this.props.showMonthLabels) {
-      return 0;
-    }
-    if (this.props.horizontal) {
-      return squareSize + MONTH_LABEL_GUTTER_SIZE;
-    }
-    return 2 * (squareSize + MONTH_LABEL_GUTTER_SIZE);
-  }
-
-  getStartDate() {
-    return shiftDate(this.getEndDate(), -this.props.numDays + 1); // +1 because endDate is inclusive
-  }
-
-  getEndDate() {
-    return getBeginningTimeForDate(convertToDate(this.props.endDate));
-  }
-
-  getStartDateWithEmptyDays() {
-    return shiftDate(this.getStartDate(), -this.getNumEmptyDaysAtStart());
-  }
-
-  getNumEmptyDaysAtStart() {
-    return this.getStartDate().getDay();
-  }
-
-  getNumEmptyDaysAtEnd() {
-    return DAYS_IN_WEEK - 1 - this.getEndDate().getDay();
-  }
-
   getXLabels(dataset) {
-    return Array.from(new Set(this.props.xLabels || dataset.map(datasetElement => datasetElement.xLabel)))
+    const {xLabelsConfig = {}} = this.props;
+    const {xLabels} = xLabelsConfig
+    return Array.from(new Set(xLabels || dataset.map(datasetElement => datasetElement.xLabel)))
   }
 
   getYLabels(dataset) {
-    return Array.from(new Set(this.props.yLabels || dataset.map(datasetElement => datasetElement.yLabel)))
-  }
-
-  getWeekCount() {
-    const numDaysRoundedToWeek =
-      this.props.numDays +
-      this.getNumEmptyDaysAtStart() +
-      this.getNumEmptyDaysAtEnd();
-    return Math.ceil(numDaysRoundedToWeek / DAYS_IN_WEEK);
-  }
-
-  getWeekWidth() {
-    return DAYS_IN_WEEK * this.getSquareSizeWithGutter();
+    const {yLabelsConfig = {}} = this.props;
+    const {yLabels} = yLabelsConfig
+    return Array.from(new Set(yLabels || dataset.map(datasetElement => datasetElement.yLabel)))
   }
 
   getValueForCoordinates(rowIndex, columnIndex) {
@@ -161,20 +117,6 @@ class HeatmapGraph extends AbstractChart {
     return [rowIndex * this.getSquareSizeWithGutter(), 0];
   }
 
-  getMonthLabelCoordinates(weekIndex) {
-    if (this.props.horizontal) {
-      return [
-        weekIndex * this.getSquareSizeWithGutter(),
-        this.getMonthLabelSize() - MONTH_LABEL_GUTTER_SIZE
-      ];
-    }
-    const verticalOffset = -2;
-    return [
-      0,
-      (weekIndex + 1) * this.getSquareSizeWithGutter() + verticalOffset
-    ];
-  }
-
   renderSquare(rowIndex, columnIndex) {
     const [x, y] = this.getSquareCoordinates(rowIndex);
     const { squareSize = SQUARE_SIZE } = this.props;
@@ -210,7 +152,8 @@ class HeatmapGraph extends AbstractChart {
   }
 
   renderAllHorizontalLabels(config) {
-    const { yLabelsOffset = 4, yLabelTransformationMap, style = {} } = this.props;
+    const { yLabelsOffset = 4, yLabelsConfig, style = {} } = this.props;
+    const {transformationMap = {}} = yLabelsConfig;
     let {
       paddingRight = 64,
     } = config;
@@ -219,8 +162,8 @@ class HeatmapGraph extends AbstractChart {
 
       const x = paddingRight - yLabelsOffset;
       const y = (i + 0.55) * this.getSquareSizeWithGutter();
-      if (yLabelTransformationMap) {
-        yLabel = yLabelTransformationMap[yLabel.toString()]
+      if (transformationMap) {
+        yLabel = transformationMap[yLabel.toString()]
       }
       return(
         <Text
@@ -246,77 +189,28 @@ class HeatmapGraph extends AbstractChart {
     );
   }
 
-  //TODO start: current implementattion is hacky, use D3 instead
-
-  
-
-  convertDateToFormattedString(datasetElement, currentPeriod) {
-    let date = new Date(datasetElement);
-    switch (currentPeriod) {
-      case 'day':
-        return this.props.daysLabels[date.getDay()];
-      case 'week':
-        return date.getMonth() + '-' + date.getDate();
-      case 'month':
-        return date.getMonth() + '-' + date.getDate();
-    }
-  }
-
-  getLabelScaling(currentPeriod) {
-    switch (currentPeriod) {
-      case 'day':
-        return 2;
-      case 'week':
-        return 3;
-      case 'month':
-        return 3;
-    }
-  }
-
   renderTimeLabels() {
-    const {currentPeriod} = this.props
+    const {xLabelScaling} = this.props
 
-    return _.range(this.state.xLabels.length).map(columnIndex => {
-      const [x, y_] = this.getTransformForColumn(columnIndex);
-      const [x_, y] = this.getSquareCoordinates(5);
-      if (columnIndex%(this.getLabelScaling(currentPeriod))===0) {
+    return this.state.xLabels.map((xLabel, index) => {
+      const [x, y_] = this.getTransformForColumn(index);
+      const [x_, y] = this.getSquareCoordinates(this.state.yLabels.length + 2);
+      if (index%xLabelScaling===0) {
         return (
           <Text
             origin={`${x}, ${y}`}
             key={Math.random()}
             x={x}
             y={y}
-
+            textAnchor="center"
             {...this.getPropsForLabels()}
           >
-            {this.convertDateToFormattedString(this.state.xLabels[columnIndex], currentPeriod)}
+            {xLabel}
           </Text>
         );
       }
     });
-    /*if (!this.props.showMonthLabels) {
-      return null;
-    }
-    const weekRange = _.range(this.getWeekCount() - 1); // don't render for last week, because label will be cut off
-    return weekRange.map(weekIndex => {
-      const endOfWeek = shiftDate(
-        this.getStartDateWithEmptyDays(),
-        (weekIndex + 1) * DAYS_IN_WEEK
-      );
-      const [x, y] = this.getMonthLabelCoordinates(weekIndex);
-      return endOfWeek.getDate() >= 1 && endOfWeek.getDate() <= DAYS_IN_WEEK ? (
-        <Text
-          key={weekIndex}
-          x={x + paddingLeft}
-          y={y + 8}
-          {...this.getPropsForLabels()}
-        >
-          {MONTH_LABELS[endOfWeek.getMonth()]}
-        </Text>
-      ) : null;
-    });*/
   }
-  //TODO: end
 
   getColorForIndex(rowIndex, columnIndex) {
     const { valueConfig } = this.props;

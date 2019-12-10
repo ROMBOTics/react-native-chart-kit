@@ -239,7 +239,6 @@ class AbstractChart extends Component {
     const { propsForDots = {}, labelColor = () => '#000000' } = chartConfig;
     const { r = '6' } = propsForDots
     const radius = parseInt(r, 10)
-    console.log("radius", radius)
     return (
       <View>
         {data.map((dataset, index) => dataset.legend && (
