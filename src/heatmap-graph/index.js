@@ -189,6 +189,7 @@ class HeatmapGraph extends AbstractChart {
     );
   }
 
+  //textAnchor="center" is taken out because it would cause a crush on android
   renderTimeLabels() {
     const {xLabelScaling} = this.props
 
@@ -202,7 +203,6 @@ class HeatmapGraph extends AbstractChart {
             key={Math.random()}
             x={x}
             y={y}
-            textAnchor="center"
             {...this.getPropsForLabels()}
           >
             {xLabel}
